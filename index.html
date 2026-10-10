@@ -22,7 +22,7 @@
     overflow: hidden;
   }
 
-  /* 顶部标题栏 */
+  /* 顶部标题栏（浅色） */
   .topbar {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -32,15 +32,15 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
-    background: linear-gradient(180deg, rgba(10,20,38,.95), rgba(10,20,38,.85));
-    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #ffffff, #f5f8fc);
+    border-bottom: 1px solid #dce3ee;
   }
-  .brand { color: var(--text); font-size: 16px; letter-spacing: 2px; }
-  .brand b { color: var(--accent); font-weight: 600; }
-  .brand em { font-style: normal; color: var(--accent-2); }
-  #now { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; }
+  .brand { color: #1f2d3d; font-size: 16px; letter-spacing: 2px; font-weight: 600; }
+  .brand b { color: #1f77d0; font-weight: 700; }
+  .brand em { font-style: normal; color: #0c9d76; }
+  #now { color: #7b8aa0; font-size: 13px; letter-spacing: 1px; }
 
-  /* 标签切换栏 */
+  /* 标签切换栏（浅色） */
   .tabs {
     position: fixed;
     top: 52px; left: 0; right: 0;
@@ -48,28 +48,30 @@
     z-index: 29;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding: 0 24px;
-    background: rgba(11,18,32,.9);
-    border-bottom: 1px solid var(--line);
+    background: #f5f8fc;
+    border-bottom: 1px solid #dce3ee;
   }
   .tab {
     cursor: pointer;
     padding: 7px 22px;
     font-size: 14px;
-    color: var(--text-dim);
+    color: #5b6b82;
     border-radius: 6px;
     border: 1px solid transparent;
     letter-spacing: 1px;
     transition: all .18s ease;
     user-select: none;
+    background: transparent;
   }
-  .tab:hover { color: var(--text); background: rgba(64,158,255,.08); }
+  .tab:hover { color: #1f77d0; background: #eaf2fb; }
   .tab.active {
-    color: #fff;
-    background: linear-gradient(135deg, rgba(58,160,255,.25), rgba(37,211,165,.18));
-    border: 1px solid rgba(58,160,255,.5);
-    box-shadow: 0 0 12px rgba(58,160,255,.25);
+    color: #1f77d0;
+    background: #ffffff;
+    border: 1px solid #c5dcf4;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(31,119,208,.12);
   }
 
   /* 大屏 iframe 容器 */
