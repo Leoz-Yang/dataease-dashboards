@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格林材料 · 数据看板</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #0f1a2e;
+    --line: rgba(64, 158, 255, 0.18);
+    --accent: #3aa0ff;
+    --accent-2: #25d3a5;
+    --text: #dfeaff;
+    --text-dim: #7e91b3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  /* 顶部标题栏 */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: linear-gradient(180deg, rgba(10,20,38,.95), rgba(10,20,38,.85));
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { color: var(--text); font-size: 16px; letter-spacing: 2px; }
+  .brand b { color: var(--accent); font-weight: 600; }
+  .brand em { font-style: normal; color: var(--accent-2); }
+  #now { color: var(--text-dim); font-size: 13px; letter-spacing: 1px; }
+
+  /* 标签切换栏 */
+  .tabs {
+    position: fixed;
+    top: 52px; left: 0; right: 0;
+    height: 44px;
+    z-index: 29;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 24px;
+    background: rgba(11,18,32,.9);
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    cursor: pointer;
+    padding: 7px 22px;
+    font-size: 14px;
+    color: var(--text-dim);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    letter-spacing: 1px;
+    transition: all .18s ease;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); background: rgba(64,158,255,.08); }
+  .tab.active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(58,160,255,.25), rgba(37,211,165,.18));
+    border: 1px solid rgba(58,160,255,.5);
+    box-shadow: 0 0 12px rgba(58,160,255,.25);
+  }
+
+  /* 大屏 iframe 容器 */
+  #stage {
+    position: fixed;
+    top: 96px; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+  }
+  #stage iframe {
+    width: 100%; height: 100%;
+    border: 0; display: block;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 顶部标题栏 -->
+  <div class="topbar">
+    <span class="brand"><b>格林材料</b> · 数据看板 <em>DataEase</em></span>
+    <span id="now"></span>
+  </div>
+
+  <!-- 标签切换栏 -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- 大屏 iframe -->
+  <div id="stage">
+    <iframe id="dv-frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+  </div>
+
+<script>
+(function(){
+  // ====== 三个仪表板配置：改这里即可 ======
+  var DASHBOARDS = [
+    { name: "熔炼记录", url: "https://north-de2.fit2cloud.cn/#/de-link/yH9jbSda" },
+    { name: "浇注记录", url: "https://north-de2.fit2cloud.cn/#/de-link/vkQkrE60" },
+    { name: "炉次成本", url: "https://north-de2.fit2cloud.cn/#/de-link/rr2ICwHm" }
+  ];
+  // ========================================
+
+  var frame = document.getElementById('dv-frame');
+  var tabs  = document.getElementById('tabs');
+
+  function switchTo(idx){
+    var cur = DASHBOARDS[idx];
+    frame.src = cur.url;                     // 切换 iframe
+    var all = tabs.querySelectorAll('.tab');
+    for (var i=0;i<all.length;i++) all[i].classList.toggle('active', i===idx);
+  }
+
+  DASHBOARDS.forEach(function(d,i){
+    var b = document.createElement('div');
+    b.className = 'tab' + (i===0 ? ' active' : '');
+    b.textContent = d.name;
+    b.onclick = function(){ switchTo(i); };
+    tabs.appendChild(b);
+  });
+
+  switchTo(0);  // 默认显示第一个
+
+  // 右上角时钟
+  function tick(){
+    var d = new Date();
+    var p = function(n){ return (n<10?'0':'')+n; };
+    document.getElementById('now').textContent =
+      d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+
+      p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
