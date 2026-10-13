@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格林材料 · 数据看板</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #0f1a2e;
+    --line: rgba(64, 158, 255, 0.18);
+    --accent: #3aa0ff;
+    --accent-2: #25d3a5;
+    --text: #dfeaff;
+    --text-dim: #7e91b3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  /* 顶部标题栏（浅色） */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 52px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: linear-gradient(180deg, #ffffff, #f5f8fc);
+    border-bottom: 1px solid #dce3ee;
+  }
+  .brand { color: #1f2d3d; font-size: 16px; letter-spacing: 2px; font-weight: 600; }
+  .brand b { color: #1f77d0; font-weight: 700; }
+  .brand em { font-style: normal; color: #0c9d76; }
+  .top-right { display: flex; align-items: center; gap: 14px; }
+  #now { color: #7b8aa0; font-size: 13px; letter-spacing: 1px; }
+
+  /* 缩放切换按钮（浅色小chip） */
+  .zoomctl {
+    cursor: pointer;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: #1f77d0;
+    background: #ffffff;
+    border: 1px solid #c5dcf4;
+    border-radius: 14px;
+    letter-spacing: 1px;
+    user-select: none;
+    transition: all .15s ease;
+  }
+  .zoomctl:hover { background: #eaf2fb; }
+
+  /* 标签切换栏（浅色） */
+  .tabs {
+    position: fixed;
+    top: 52px; left: 0; right: 0;
+    height: 44px;
+    z-index: 29;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px;
+    background: #f5f8fc;
+    border-bottom: 1px solid #dce3ee;
+  }
+  .tab {
+    cursor: pointer;
+    padding: 7px 22px;
+    font-size: 14px;
+    color: #5b6b82;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    letter-spacing: 1px;
+    transition: all .18s ease;
+    user-select: none;
+    background: transparent;
+  }
+  .tab:hover { color: #1f77d0; background: #eaf2fb; }
+  .tab.active {
+    color: #1f77d0;
+    background: #ffffff;
+    border: 1px solid #c5dcf4;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(31,119,208,.12);
+  }
+
+  /* 大屏 iframe 容器 */
+  #stage {
+    position: fixed;
+    top: 96px; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+  }
+  #holder {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  #dv-frame { border: 0; display: block; width: 100%; height: 100%; }
+  #dv-frame.fit {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 1920px; height: 1080px;
+    transform-origin: center center;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 顶部标题栏 -->
+  <div class="topbar">
+    <span class="brand"><b>格林材料</b> · 数据看板</span>
+    <span class="top-right">
+      <span id="zoomctl" class="zoomctl" hidden>适应</span>
+      <span id="dbg" style="color:#c00;font:12px monospace"></span><span id="now"></span>
+    </span>
+  </div>
+
+  <!-- 标签切换栏 -->
+  <div class="tabs" id="tabs"></div>
+
+  <!-- 大屏 iframe -->
+  <div id="stage">
+    <div id="holder">
+      <iframe id="dv-frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // ====== 仪表板配置：改这里即可 ======
+  // view: 不写=100%原样显示(可滚动)；"fit"=自动缩放到整个看板一次看全
+  // design: 大屏设计尺寸(像素)，fit 时按它缩放
+  var DASHBOARDS = [
+    { name: "熔炼记录", url: "https://north-de2.fit2cloud.cn/#/de-link/yH9jbSda" },
+    { name: "浇注记录", url: "https://north-de2.fit2cloud.cn/#/de-link/vkQkrE60" },
+    { name: "炉次成本", url: "https://north-de2.fit2cloud.cn/#/de-link/rr2ICwHm" },
+    { name: "设备看板", url: "https://north-de2.fit2cloud.cn/#/de-link/sM3WpMad", view: "fit", design: [1920, 1080] }
+  ];
+  // ========================================
+
+  var frame  = document.getElementById('dv-frame');
+  var holder = document.getElementById('holder');
+  var tabs   = document.getElementById('tabs');
+  var zoomctl= document.getElementById('zoomctl');
+  var fitActive = false;   // 当前是否处于"适应"缩放
+
+  function updateScale(){
+    var d = DASHBOARDS[curIdx] || {};
+    var dw = (d.design && d.design[0]) || 1920;
+    var dh = (d.design && d.design[1]) || 1080;
+    var k = Math.min(holder.clientWidth / dw, holder.clientHeight / dh);
+    k = Math.min(k, 1);                       // 不放大，只缩小到全可见
+    frame.style.transform = 'translate(-50%, -50%) scale(' + k + ')';
+    var el=document.getElementById('dbg'); if(el) el.textContent='DBG holder='+holder.clientWidth+'x'+holder.clientHeight+' design='+dw+'x'+dh+' scale='+k.toFixed(3)+' fit='+fitActive+' cls='+frame.className;
+  }
+
+  function applyView(){
+    // fitActive=true → 缩放到整个看板一次看全；false → 100% 原样（超出可滚动）
+    if (fitActive) {
+      frame.classList.add('fit');
+      updateScale();
+    } else {
+      frame.classList.remove('fit');
+      frame.style.transform = 'none';
+    }
+    zoomctl.textContent = fitActive ? '适应' : '100%';
+    zoomctl.hidden = false;
+  }
+
+  function switchTo(idx){
+    curIdx = idx;
+    var cur = DASHBOARDS[idx];
+    frame.src = cur.url;                     // 切换 iframe
+    var all = tabs.querySelectorAll('.tab');
+    for (var i=0;i<all.length;i++) all[i].classList.toggle('active', i===idx);
+    fitActive = (cur.view === 'fit');        // 切到自带 fit 的标签默认「适应」
+    applyView();
+  }
+
+  var curIdx = 0;
+
+  DASHBOARDS.forEach(function(d,i){
+    var b = document.createElement('div');
+    b.className = 'tab' + (i===0 ? ' active' : '');
+    b.textContent = d.name;
+    b.onclick = function(){ switchTo(i); };
+    tabs.appendChild(b);
+  });
+
+  // 缩放按钮：在 适应 ⇄ 100% 之间切换
+  zoomctl.onclick = function(){
+    fitActive = !fitActive;
+    applyView();
+  };
+
+  window.addEventListener('resize', function(){
+    if (fitActive) updateScale();
+  });
+
+  switchTo(3);  // DBG: 默认打开第4个
+
+  // 右上角时钟
+  function tick(){
+    var d = new Date();
+    var p = function(n){ return (n<10?'0':'')+n; };
+    document.getElementById('now').textContent =
+      d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+
+      p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
