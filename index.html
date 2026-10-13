@@ -38,23 +38,7 @@
   .brand { color: #1f2d3d; font-size: 16px; letter-spacing: 2px; font-weight: 600; }
   .brand b { color: #1f77d0; font-weight: 700; }
   .brand em { font-style: normal; color: #0c9d76; }
-  .top-right { display: flex; align-items: center; gap: 14px; }
   #now { color: #7b8aa0; font-size: 13px; letter-spacing: 1px; }
-
-  /* 缩放切换按钮（浅色小chip） */
-  .zoomctl {
-    cursor: pointer;
-    padding: 4px 12px;
-    font-size: 13px;
-    color: #1f77d0;
-    background: #ffffff;
-    border: 1px solid #c5dcf4;
-    border-radius: 14px;
-    letter-spacing: 1px;
-    user-select: none;
-    transition: all .15s ease;
-  }
-  .zoomctl:hover { background: #eaf2fb; }
 
   /* 标签切换栏（浅色） */
   .tabs {
@@ -96,17 +80,9 @@
     top: 96px; left: 0; right: 0; bottom: 0;
     background: var(--bg);
   }
-  #holder {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-  #dv-frame { border: 0; display: block; width: 100%; height: 100%; }
-  #dv-frame.fit {
-    position: absolute;
-    left: 50%; top: 50%;
-    width: 1920px; height: 1080px;
-    transform-origin: center center;
+  #stage iframe {
+    width: 100%; height: 100%;
+    border: 0; display: block;
   }
 </style>
 </head>
@@ -115,10 +91,7 @@
   <!-- 顶部标题栏 -->
   <div class="topbar">
     <span class="brand"><b>格林材料</b> · 数据看板</span>
-    <span class="top-right">
-      <span id="zoomctl" class="zoomctl" hidden>适应</span>
-      <span id="now"></span>
-    </span>
+    <span id="now"></span>
   </div>
 
   <!-- 标签切换栏 -->
@@ -126,63 +99,29 @@
 
   <!-- 大屏 iframe -->
   <div id="stage">
-    <div id="holder">
-      <iframe id="dv-frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
-    </div>
+    <iframe id="dv-frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
   </div>
 
 <script>
 (function(){
-  // ====== 仪表板配置：改这里即可 ======
-  // view: 不写=100%原样显示(可滚动)；"fit"=自动缩放到整个看板一次看全
-  // design: 大屏设计尺寸(像素)，fit 时按它缩放
+  // ====== 三个仪表板配置：改这里即可 ======
   var DASHBOARDS = [
     { name: "熔炼记录", url: "https://north-de2.fit2cloud.cn/#/de-link/yH9jbSda" },
     { name: "浇注记录", url: "https://north-de2.fit2cloud.cn/#/de-link/vkQkrE60" },
     { name: "炉次成本", url: "https://north-de2.fit2cloud.cn/#/de-link/rr2ICwHm" },
-    { name: "设备看板", url: "https://north-de2.fit2cloud.cn/#/de-link/sM3WpMad", view: "fit", design: [1920, 1080] }
+    { name: "设备看板", url: "https://north-de2.fit2cloud.cn/#/de-link/sM3WpMad" }
   ];
   // ========================================
 
-  var frame  = document.getElementById('dv-frame');
-  var holder = document.getElementById('holder');
-  var tabs   = document.getElementById('tabs');
-  var zoomctl= document.getElementById('zoomctl');
-  var fitActive = false;   // 当前是否处于"适应"缩放
-
-  function updateScale(){
-    var d = DASHBOARDS[curIdx] || {};
-    var dw = (d.design && d.design[0]) || 1920;
-    var dh = (d.design && d.design[1]) || 1080;
-    var k = Math.min(holder.clientWidth / dw, holder.clientHeight / dh);
-    k = Math.min(k, 1);                       // 不放大，只缩小到全可见
-    frame.style.transform = 'translate(-50%, -50%) scale(' + k + ')';
-  }
-
-  function applyView(){
-    // fitActive=true → 缩放到整个看板一次看全；false → 100% 原样（超出可滚动）
-    if (fitActive) {
-      frame.classList.add('fit');
-      updateScale();
-    } else {
-      frame.classList.remove('fit');
-      frame.style.transform = 'none';
-    }
-    zoomctl.textContent = fitActive ? '适应' : '100%';
-    zoomctl.hidden = false;
-  }
+  var frame = document.getElementById('dv-frame');
+  var tabs  = document.getElementById('tabs');
 
   function switchTo(idx){
-    curIdx = idx;
     var cur = DASHBOARDS[idx];
     frame.src = cur.url;                     // 切换 iframe
     var all = tabs.querySelectorAll('.tab');
     for (var i=0;i<all.length;i++) all[i].classList.toggle('active', i===idx);
-    fitActive = (cur.view === 'fit');        // 切到自带 fit 的标签默认「适应」
-    applyView();
   }
-
-  var curIdx = 0;
 
   DASHBOARDS.forEach(function(d,i){
     var b = document.createElement('div');
@@ -190,16 +129,6 @@
     b.textContent = d.name;
     b.onclick = function(){ switchTo(i); };
     tabs.appendChild(b);
-  });
-
-  // 缩放按钮：在 适应 ⇄ 100% 之间切换
-  zoomctl.onclick = function(){
-    fitActive = !fitActive;
-    applyView();
-  };
-
-  window.addEventListener('resize', function(){
-    if (fitActive) updateScale();
   });
 
   switchTo(0);  // 默认显示第一个
