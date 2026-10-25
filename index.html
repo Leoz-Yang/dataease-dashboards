@@ -3,147 +3,227 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>格林材料 · 数据看板</title>
+<title>格林材料 · 生产监控平台</title>
 <style>
-  :root {
-    --bg: #0b1220;
-    --panel: #0f1a2e;
-    --line: rgba(64, 158, 255, 0.18);
-    --accent: #3aa0ff;
-    --accent-2: #25d3a5;
-    --text: #dfeaff;
-    --text-dim: #7e91b3;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-    overflow: hidden;
-  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; font-family:"Microsoft YaHei","PingFang SC",Helvetica,Arial,sans-serif; }
+  body{ display:flex; background:#eef1f5; overflow:hidden; }
 
-  /* 顶部标题栏（浅色） */
-  .topbar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 52px;
-    z-index: 30;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    background: linear-gradient(180deg, #ffffff, #f5f8fc);
-    border-bottom: 1px solid #dce3ee;
+  /* 左侧深蓝菜单 */
+  .sidebar{
+    width:238px; flex:0 0 238px; height:100vh;
+    background:linear-gradient(180deg,#1b2b4b 0%,#13203a 100%);
+    color:#c9d4e6; display:flex; flex-direction:column;
+    box-shadow:2px 0 12px rgba(0,0,0,.18); z-index:20; transition:margin-left .25s ease;
   }
-  .brand { color: #1f2d3d; font-size: 16px; letter-spacing: 2px; font-weight: 600; }
-  .brand b { color: #1f77d0; font-weight: 700; }
-  .brand em { font-style: normal; color: #0c9d76; }
-  #now { color: #7b8aa0; font-size: 13px; letter-spacing: 1px; }
+  .brand{ padding:20px 20px 16px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .brand .t1{ font-size:15px; font-weight:700; color:#fff; letter-spacing:.5px; }
 
-  /* 标签切换栏（浅色） */
-  .tabs {
-    position: fixed;
-    top: 52px; left: 0; right: 0;
-    height: 44px;
-    z-index: 29;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 24px;
-    background: #f5f8fc;
-    border-bottom: 1px solid #dce3ee;
-  }
-  .tab {
-    cursor: pointer;
-    padding: 7px 22px;
-    font-size: 14px;
-    color: #5b6b82;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    letter-spacing: 1px;
-    transition: all .18s ease;
-    user-select: none;
-    background: transparent;
-  }
-  .tab:hover { color: #1f77d0; background: #eaf2fb; }
-  .tab.active {
-    color: #1f77d0;
-    background: #ffffff;
-    border: 1px solid #c5dcf4;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(31,119,208,.12);
-  }
+  .menu{ padding:10px 0; overflow-y:auto; flex:1; }
+  .menu::-webkit-scrollbar{ width:6px; }
+  .menu::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.12); border-radius:3px; }
 
-  /* 大屏 iframe 容器 */
-  #stage {
-    position: fixed;
-    top: 96px; left: 0; right: 0; bottom: 0;
-    background: var(--bg);
+  .m-item{
+    display:flex; align-items:center; gap:10px;
+    padding:11px 20px; cursor:pointer; font-size:13.5px;
+    border-left:3px solid transparent; transition:.15s; user-select:none;
   }
-  #stage iframe {
-    width: 100%; height: 100%;
-    border: 0; display: block;
+  .m-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+  .m-item.active{ background:rgba(46,150,255,.16); color:#fff; border-left-color:#2e96ff; }
+  .m-item.active .ic{ color:#2e96ff; }
+  .m-item .ic{ width:18px; height:18px; flex:0 0 18px; color:#8ea1c4; display:flex; }
+  .m-item .ic svg{ width:18px; height:18px; }
+  .m-item .arrow{ margin-left:auto; font-size:10px; color:#7f8fb0; transition:.2s; }
+  .m-item.open .arrow{ transform:rotate(90deg); }
+
+  .sub{ overflow:hidden; max-height:0; transition:max-height .25s ease; }
+  .sub.open{ max-height:320px; }
+  .sub .m-item{ padding:9px 20px 9px 48px; font-size:12.8px; }
+
+  /* 右侧内容区 */
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; height:100vh; }
+  .topbar{
+    height:46px; flex:0 0 46px; background:#fff; display:flex; align-items:center;
+    padding:0 18px; gap:14px; border-bottom:1px solid #e2e7ee;
+    box-shadow:0 1px 4px rgba(0,0,0,.04);
+  }
+  .burger{ display:none; cursor:pointer; color:#43608c; font-size:18px; line-height:1; padding-right:4px; }
+  .topbar .cur{ font-size:14px; font-weight:600; color:#20304d; }
+  .topbar .crumb{ font-size:12px; color:#96a2b8; }
+  .topbar .spacer{ flex:1; }
+  .tb-btn{
+    font-size:12px; color:#43608c; border:1px solid #d5dde9; background:#f7f9fc;
+    padding:5px 12px; border-radius:6px; cursor:pointer; transition:.15s;
+  }
+  .tb-btn:hover{ background:#eaf2ff; border-color:#b9cdf0; color:#1f6fe0; }
+
+  .stage{ flex:1; position:relative; background:#eef1f5; }
+  iframe#frame{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff; }
+  .loading{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; color:#8a97ad; font-size:13px; background:#eef1f5; z-index:2;
+  }
+  .spinner{ width:34px; height:34px; border:3px solid #d4dcea; border-top-color:#2e96ff; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading .tip{ font-size:12px; color:#a7b3c7; }
+
+  /* 窄屏：侧栏默认收起 */
+  @media (max-width:860px){
+    .sidebar{ position:absolute; height:100vh; margin-left:0; }
+    .sidebar.collapsed{ margin-left:-238px; }
+    .burger{ display:block; }
+    .topbar .crumb{ display:none; }
   }
 </style>
 </head>
 <body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="t1">格林材料 · 生产监控平台</div>
+    </div>
+    <nav class="menu" id="menu"></nav>
+  </aside>
 
-  <!-- 顶部标题栏 -->
-  <div class="topbar">
-    <span class="brand"><b>格林材料</b> · 数据看板</span>
-    <span id="now"></span>
-  </div>
-
-  <!-- 标签切换栏 -->
-  <div class="tabs" id="tabs"></div>
-
-  <!-- 大屏 iframe -->
-  <div id="stage">
-    <iframe id="dv-frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+  <div class="main">
+    <div class="topbar">
+      <span class="burger" id="burger">☰</span>
+      <div class="cur" id="curTitle">首页看板</div>
+      <div class="crumb" id="crumb">/ 首页页面一</div>
+      <div class="spacer"></div>
+      <button class="tb-btn" id="btnReload">↻ 刷新</button>
+      <button class="tb-btn" id="btnNew">↗ 新窗口打开</button>
+      <button class="tb-btn" id="btnFull">⛶ 全屏</button>
+    </div>
+    <div class="stage">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div id="loadText">加载中…</div>
+        <div class="tip" id="loadTip"></div>
+      </div>
+      <iframe id="frame" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    </div>
   </div>
 
 <script>
-(function(){
-  // ====== 三个仪表板配置：改这里即可 ======
-  var DASHBOARDS = [
-    { name: "熔炼记录", url: "https://north-de2.fit2cloud.cn/#/de-link/yH9jbSda" },
-    { name: "浇注记录", url: "https://north-de2.fit2cloud.cn/#/de-link/vkQkrE60" },
-    { name: "炉次成本", url: "https://north-de2.fit2cloud.cn/#/de-link/rr2ICwHm" },
-    { name: "设备看板", url: "https://north-de2.fit2cloud.cn/#/de-link/sM3WpMad" },
-    { name: "能耗看板", url: "https://north-de2.fit2cloud.cn/#/de-link/dgnE5vIc" }
+  var BASE = "https://north-de2.fit2cloud.cn/#/de-link/";
+  // 菜单配置（改这里即可增删看板）
+  var MENU = [
+    { name:"首页看板", icon:"home", children:[
+        { name:"首页页面一", url:BASE+"NpIxAJ3B" },
+        { name:"首页页面二", url:BASE+"SjEEHAXl" },
+        { name:"首页页面三", url:BASE+"yH9jbSda" }
+    ]},
+    { name:"能耗看板", icon:"bolt", url:BASE+"OuJmIB0a" },
+    { name:"产量看板", icon:"chart", url:BASE+"iej41ech" },
+    { name:"实时数据看板", icon:"pulse", children:[
+        { name:"产线状态", url:BASE+"3x6JH0Ti" },
+        { name:"产量状态", url:BASE+"kPdupRZm" }
+    ]},
+    { name:"工艺看板", icon:"gear", url:BASE+"eSQ6V1KZ" },
+    { name:"故障维护看板", icon:"warn", url:BASE+"8XiTNCXD" }
   ];
-  // ========================================
 
-  var frame = document.getElementById('dv-frame');
-  var tabs  = document.getElementById('tabs');
+  // 图标为常量 SVG，静态内容，非用户输入，innerHTML 使用安全
+  var ICONS = {
+    home :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>',
+    bolt :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>',
+    chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>',
+    pulse:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h4l2 7 4-16 2 9h6"/></svg>',
+    gear :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 2h-4l-.6 2.6a7 7 0 0 0-2 1.2L5.1 5 3.1 8.4l2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2L10 22h4l.6-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>',
+    warn :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 2 20h20L12 3z"/><path d="M12 9v5"/><circle cx="12" cy="17.2" r=".6" fill="currentColor" stroke="none"/></svg>'
+  };
 
-  function switchTo(idx){
-    var cur = DASHBOARDS[idx];
-    frame.src = cur.url;                     // 切换 iframe
-    var all = tabs.querySelectorAll('.tab');
-    for (var i=0;i<all.length;i++) all[i].classList.toggle('active', i===idx);
-  }
+  var frame = document.getElementById('frame');
+  var loading = document.getElementById('loading');
+  var curTitle = document.getElementById('curTitle');
+  var crumb = document.getElementById('crumb');
+  var loadText = document.getElementById('loadText');
+  var loadTip = document.getElementById('loadTip');
+  var loadTimer = null, tipTimer = null;
 
-  DASHBOARDS.forEach(function(d,i){
-    var b = document.createElement('div');
-    b.className = 'tab' + (i===0 ? ' active' : '');
-    b.textContent = d.name;
-    b.onclick = function(){ switchTo(i); };
-    tabs.appendChild(b);
+  frame.addEventListener('load', function(){
+    clearTimeout(loadTimer); clearTimeout(tipTimer);
+    loading.style.display='none';
   });
 
-  switchTo(0);  // 默认显示第一个
-
-  // 右上角时钟
-  function tick(){
-    var d = new Date();
-    var p = function(n){ return (n<10?'0':'')+n; };
-    document.getElementById('now').textContent =
-      d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+
-      p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  function show(url, topName, subName, key){
+    loadText.textContent = '加载中…'; loadTip.textContent = '';
+    loading.style.display='flex';
+    frame.src = url;
+    curTitle.textContent = topName;
+    crumb.textContent = subName ? ("/ "+subName) : "";
+    try{ localStorage.setItem('gm_active', key); }catch(e){}
+    // 加载超时提示
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function(){
+      if(loading.style.display!=='none'){ loadTip.textContent = '加载较慢…若长时间空白，请点右上角「新窗口打开」'; }
+    }, 12000);
   }
-  tick(); setInterval(tick, 1000);
-})();
+
+  function setActive(el){
+    document.querySelectorAll('.m-item').forEach(function(x){ x.classList.remove('active'); });
+    el.classList.add('active');
+  }
+
+  function build(){
+    var nav = document.getElementById('menu');
+    MENU.forEach(function(m, i){
+      if(!m.children){
+        var it = document.createElement('div');
+        it.className='m-item';
+        var ic = document.createElement('span'); ic.className='ic'; ic.innerHTML = ICONS[m.icon] || '';
+        var tx = document.createElement('span'); tx.textContent = m.name;
+        it.appendChild(ic); it.appendChild(tx);
+        it.dataset.key = 'top'+i;
+        it.onclick = function(){ setActive(it); show(m.url, m.name, "", it.dataset.key); };
+        nav.appendChild(it);
+      } else {
+        var head = document.createElement('div');
+        head.className='m-item';
+        var ic2 = document.createElement('span'); ic2.className='ic'; ic2.innerHTML = ICONS[m.icon] || '';
+        var tx2 = document.createElement('span'); tx2.textContent = m.name;
+        var ar = document.createElement('span'); ar.className='arrow'; ar.textContent='▶';
+        head.appendChild(ic2); head.appendChild(tx2); head.appendChild(ar);
+        head.dataset.key = 'top'+i;
+        var sub = document.createElement('div'); sub.className='sub';
+        m.children.forEach(function(c, j){
+          var it = document.createElement('div');
+          it.className='m-item'; it.textContent = c.name;
+          it.dataset.key = 'top'+i+'-'+j;
+          it.onclick = function(e){ e.stopPropagation(); setActive(it); show(c.url, m.name, c.name, it.dataset.key); };
+          sub.appendChild(it);
+        });
+        head.onclick = function(){
+          var opening = !sub.classList.contains('open');
+          sub.classList.toggle('open'); head.classList.toggle('open');
+          if(opening && !sub.querySelector('.m-item.active')){
+            var f = sub.querySelector('.m-item'); if(f) f.click();
+          }
+        };
+        nav.appendChild(head); nav.appendChild(sub);
+      }
+    });
+
+    // 恢复上次选中，否则默认首页第一页
+    var saved = null; try{ saved = localStorage.getItem('gm_active'); }catch(e){}
+    var target = saved ? document.querySelector('.m-item[data-key="'+saved+'"]') : null;
+    if(!target){ target = document.querySelector('.sub .m-item'); }
+    var head0 = target.previousElementSibling;
+    var sub0 = target.parentElement;
+    if(sub0 && sub0.classList.contains('sub')){ sub0.classList.add('open'); if(head0) head0.classList.add('open'); }
+    target.click();
+  }
+
+  document.getElementById('btnReload').onclick = function(){ frame.src = frame.src; loading.style.display='flex'; };
+  document.getElementById('btnNew').onclick = function(){ if(frame.src) window.open(frame.src,'_blank'); };
+  document.getElementById('btnFull').onclick = function(){
+    var st = document.querySelector('.stage');
+    if(!document.fullscreenElement){ if(st.requestFullscreen) st.requestFullscreen(); }
+    else { if(document.exitFullscreen) document.exitFullscreen(); }
+  };
+  document.getElementById('burger').onclick = function(){ document.getElementById('sidebar').classList.toggle('collapsed'); };
+
+  build();
 </script>
 </body>
 </html>
